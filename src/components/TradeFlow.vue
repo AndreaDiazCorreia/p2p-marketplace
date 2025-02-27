@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import type { Order } from '../types/Order';
 
 const props = defineProps<{
@@ -9,7 +9,6 @@ const props = defineProps<{
 const selectedCountry = ref('');
 const operationType = ref(''); // 'buy' or 'sell'
 const amount = ref('');
-const marketPrice = ref(''); // Variable para almacenar el precio de mercado
 
 // List of countries with their currencies
 const countries = [
@@ -17,7 +16,6 @@ const countries = [
   { code: 'BR', name: 'Brazil', currency: 'BRL' },
   { code: 'AR', name: 'Argentina', currency: 'ARS' },
   { code: 'MX', name: 'Mexico', currency: 'MXN' },
-  // Add more countries as needed
 ];
 
 const selectedCurrency = computed(() => {
@@ -30,45 +28,34 @@ const matchingOrders = computed(() => {
     return [];
   }
 
-  // Filter orders based on:
-  // 1. Matching currency (from selected country)
-  // 2. Opposite operation type (if user wants to buy, show sell orders and vice versa)
-  // 3. Amount within reasonable range (±10% of requested amount)
+  // Filtrar órdenes
   const filteredOrders = props.orders.filter(order => {
+    // Verificar status pending
+    const isPending = order.status === 'pending';
+    
+    // Verificar moneda y tipo de operación
     const isMatchingCurrency = order.fiat === selectedCurrency.value;
     const isOppositeType = (operationType.value === 'buy' && order.side === 'sell') ||
                           (operationType.value === 'sell' && order.side === 'buy');
-    const orderAmount = parseFloat(order.amount);
-    const requestedAmount = parseFloat(amount.value);
-    const isWithinRange = Math.abs(orderAmount - requestedAmount) / requestedAmount <= 0.1;
 
-    return isMatchingCurrency && isOppositeType && isWithinRange;
+    // Verificar rango de montos
+    const requestedAmount = parseFloat(amount.value);
+    const min = parseFloat(order.minAmount);
+    const max = parseFloat(order.maxAmount);
+    const isWithinRange = requestedAmount >= min && requestedAmount <= max;
+
+    return isPending && isMatchingCurrency && isOppositeType && isWithinRange;
   });
 
-  // Sort by best price (lowest for buy, highest for sell)
+  // Ordenar por mejor precio
   return filteredOrders
     .sort((a, b) => {
       const priceA = parseFloat(a.price);
       const priceB = parseFloat(b.price);
+      // Para compras, ordenar de menor a mayor precio
+      // Para ventas, ordenar de mayor a menor precio
       return operationType.value === 'buy' ? priceA - priceB : priceB - priceA;
-    })
-    .slice(0, 5); // Return only top 5 matches
-});
-
-// Función para obtener el precio de una plataforma (ejemplo)
-async function fetchMarketPrice() {
-  try {
-    const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT');
-    const data = await response.json();
-    marketPrice.value = data.price;
-  } catch (error) {
-    console.error('Error fetching market price:', error);
-  }
-}
-
-// Llama a la función al montar el componente
-onMounted(() => {
-  fetchMarketPrice();
+    });
 });
 
 function formatPrice(price: string): string {
@@ -87,47 +74,17 @@ function formatAmount(amount: string): string {
   });
 }
 
-function formatBTCAmount(amount: string): string {
-  const satsAmount = parseFloat(amount);
-  if (isNaN(satsAmount)) return '0.00000000';
-  
-  // Convert sats to BTC (1 BTC = 100,000,000 sats)
-  const btcAmount = satsAmount / 100000000;
-  return btcAmount.toFixed(8);
-}
-
-function calculatePriceMarkup(price: string, basePrice: string): string {
-  const priceNum = parseFloat(price);
-  const basePriceNum = parseFloat(basePrice);
-  
-  if (isNaN(priceNum) || isNaN(basePriceNum) || basePriceNum === 0) {
-    return '0.0%';
-  }
-  
-  const markup = ((priceNum - basePriceNum) / basePriceNum) * 100;
-  return markup > 0 ? `+${markup.toFixed(1)}%` : `${markup.toFixed(1)}%`;
-}
-
-function formatExpiration(timestamp: string): string {
-  const date = new Date(parseInt(timestamp) * 1000);
-  const now = new Date();
-  const diffTime = Math.abs(date.getTime() - now.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays < 1) {
-    return 'Today';
-  } else if (diffDays === 1) {
-    return 'Tomorrow';
-  } else {
-    return `${diffDays} days`;
-  }
+function calculatePremium(premium: string): string {
+  const num = parseFloat(premium);
+  if (isNaN(num)) return '0%';
+  return num > 0 ? `+${num}%` : `${num}%`;
 }
 </script>
 
 <template>
   <div class="trade-flow">
     <div class="trade-form">
-      <h2>{{ operationType === 'buy' ? 'BUY BITCOIN' : operationType === 'sell' ? 'SELL BITCOIN' : 'Create Trade' }}</h2>
+      <h2>{{ operationType === 'buy' ? 'BUY BITCOIN' : operationType === 'sell' ? 'SELL BITCOIN' : 'Find Orders' }}</h2>
       
       <!-- Step 1: Country Selection -->
       <div class="form-group">
@@ -184,9 +141,9 @@ function formatExpiration(timestamp: string): string {
       </div>
     </div>
 
-    <!-- Step 4: Matching Orders -->
+    <!-- Matching Orders -->
     <div v-if="matchingOrders.length > 0" class="matching-orders">
-      <h3>Best Available Orders</h3>
+      <h3>Available Orders ({{ matchingOrders.length }})</h3>
       <div class="orders-list">
         <div v-for="order in matchingOrders" 
              :key="order.id" 
@@ -194,7 +151,11 @@ function formatExpiration(timestamp: string): string {
         >
           <div class="order-header">
             <div class="trader-info">
-              <div class="trader-stats">{{ order.trades }} trades • {{ order.completion }}% completion</div>
+              <div class="trader-name">{{ order.name || 'Anonymous' }}</div>
+              <div class="trader-stats">
+                <span class="reviews">{{ order.trades }} trades</span>
+                <span class="completion">{{ order.completion.toFixed(0) }}% completion</span>
+              </div>
               <div class="trader-source">
                 <span v-for="source in order.sources" :key="source" class="source-tag">
                   {{ source }}
@@ -203,7 +164,7 @@ function formatExpiration(timestamp: string): string {
             </div>
             <div class="price-info">
               <div class="price-amount">{{ formatPrice(order.price) }} {{ order.fiat }}</div>
-              <div class="price-markup">Binance <span class="markup">{{ order.premium }}%</span></div>
+              <div class="premium">{{ calculatePremium(order.premium) }}</div>
             </div>
           </div>
 
@@ -211,8 +172,7 @@ function formatExpiration(timestamp: string): string {
             <div class="detail-group">
               <span class="detail-label">Limits:</span>
               <span class="detail-value">
-                {{ formatPrice(order.minAmount) }} - {{ formatPrice(order.maxAmount) }} {{ order.fiat }}
-                <span class="detail-btc">({{ formatBTCAmount(order.minAmount) }} - {{ formatBTCAmount(order.maxAmount) }} BTC)</span>
+                {{ formatAmount(order.minAmount) }} - {{ formatAmount(order.maxAmount) }} {{ order.fiat }}
               </span>
             </div>
 
@@ -227,9 +187,9 @@ function formatExpiration(timestamp: string): string {
               </div>
             </div>
 
-            <div v-if="order.details" class="detail-group">
-              <span class="detail-label">Details:</span>
-              <span class="detail-value">{{ order.details }}</span>
+            <div class="detail-group">
+              <span class="detail-label">Network:</span>
+              <span class="detail-value">{{ order.network }} ({{ order.layer }})</span>
             </div>
           </div>
 
@@ -356,7 +316,16 @@ function formatExpiration(timestamp: string): string {
   flex-direction: column;
 }
 
+.trader-name {
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: #1f2937;
+}
+
 .trader-stats {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
   color: #6b7280;
   font-size: 0.9rem;
   margin-top: 0.25rem;
@@ -382,19 +351,18 @@ function formatExpiration(timestamp: string): string {
 }
 
 .price-amount {
+  font-size: 1.25rem;
   font-weight: 600;
-  font-size: 1.2rem;
   color: #1f2937;
 }
 
-.price-markup {
-  color: #6b7280;
-  font-size: 0.9rem;
-  margin-top: 0.25rem;
+.premium {
+  font-size: 0.875rem;
+  color: #059669;
 }
 
-.markup {
-  color: #059669;
+.premium:not([class*="+"]) {
+  color: #dc2626;
 }
 
 .order-details {
@@ -415,12 +383,6 @@ function formatExpiration(timestamp: string): string {
 
 .detail-value {
   color: #1f2937;
-}
-
-.detail-btc {
-  color: #6b7280;
-  font-size: 0.9rem;
-  margin-left: 0.5rem;
 }
 
 .payment-methods {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import type { Order } from '../types/Order';
 
 const props = defineProps<{
@@ -8,26 +8,13 @@ const props = defineProps<{
   userPubkey?: string;
 }>();
 
-const statusFilter = ref<string>('all');
-
 const myOrders = computed(() => {
   if (!props.userPubkey) return [];
   
-  return props.orders.filter(order => order.pubkey === props.userPubkey)
+  return props.orders
+    .filter(order => order.pubkey === props.userPubkey)
     .sort((a, b) => b.created_at - a.created_at);
 });
-
-const filteredOrders = computed(() => {
-  if (statusFilter.value === 'all') return myOrders.value;
-  return myOrders.value.filter(order => order.status === statusFilter.value);
-});
-
-const orderStats = computed(() => ({
-  total: myOrders.value.length,
-  pending: myOrders.value.filter(o => o.status === 'pending').length,
-  completed: myOrders.value.filter(o => o.status === 'completed').length,
-  cancelled: myOrders.value.filter(o => o.status === 'cancelled').length
-}));
 
 function formatAmount(amount: string): string {
   return parseFloat(amount).toFixed(8);
@@ -50,30 +37,15 @@ function formatDate(timestamp: number): string {
     <template v-if="isLoggedIn">
       <div class="my-orders-header">
         <h2>My Orders</h2>
-        <div class="order-filters">
-          <button 
-            v-for="status in ['all', 'pending', 'completed', 'cancelled']" 
-            :key="status"
-            :class="['filter-button', { active: statusFilter === status }]"
-            @click="statusFilter = status"
-          >
-            {{ status.charAt(0).toUpperCase() + status.slice(1) }}
-            <span class="count">
-              {{ status === 'all' ? orderStats.total : orderStats[status] }}
-            </span>
-          </button>
-        </div>
       </div>
 
-      <div v-if="filteredOrders.length" class="orders-grid">
-        <div v-for="order in filteredOrders" 
+      <div v-if="myOrders.length" class="orders-grid">
+        <div v-for="order in myOrders" 
              :key="order.id" 
-             :class="['order-card', order.status, order.side]">
+             class="order-card"
+        >
           <div class="order-header">
             <span class="order-type">{{ order.side.toUpperCase() }}</span>
-            <span :class="['order-status', order.status]">
-              {{ order.status }}
-            </span>
           </div>
           <div class="order-details">
             <div class="detail-row">
@@ -94,7 +66,7 @@ function formatDate(timestamp: number): string {
       
       <div v-else class="no-orders">
         <span class="material-icons">history</span>
-        <p>No orders found for the selected filter</p>
+        <p>No active orders found</p>
       </div>
     </template>
 
@@ -121,34 +93,41 @@ function formatDate(timestamp: number): string {
   margin-bottom: 2rem;
 }
 
-.order-filters {
-  display: flex;
+.orders-grid {
+  display: grid;
   gap: 1rem;
-  margin-top: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 
-.filter-button {
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid #e2e8f0;
+.order-card {
   background: white;
-  cursor: pointer;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+}
+
+.order-header {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
 }
 
-.filter-button.active {
-  background: #3b82f6;
-  color: white;
-  border-color: #3b82f6;
+.order-type {
+  font-weight: 600;
 }
 
-.count {
-  background: rgba(0, 0, 0, 0.1);
-  padding: 0.25rem 0.5rem;
-  border-radius: 1rem;
-  font-size: 0.875rem;
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.detail-row .label {
+  color: #64748b;
+}
+
+.detail-row .value {
+  font-weight: 500;
 }
 
 .login-required {
@@ -172,5 +151,14 @@ function formatDate(timestamp: number): string {
   cursor: pointer;
 }
 
-/* ... resto de los estilos para las cards y estados ... */
+.no-orders {
+  text-align: center;
+  padding: 2rem;
+  color: #64748b;
+}
+
+.no-orders .material-icons {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
 </style> 
