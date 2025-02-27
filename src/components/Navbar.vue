@@ -1,4 +1,8 @@
 <script setup lang="ts">
+const props = defineProps<{
+  currentView: string;
+}>();
+
 const routes = [
   { name: 'Order Book', path: 'orderbook' },
   { name: 'My Orders', path: 'myorders' },
@@ -19,7 +23,7 @@ const emit = defineEmits<{
         v-for="route in routes" 
         :key="route.name"
         @click.prevent="emit('navigate', route.path)"
-        :class="['nav-link', { active: currentView === route.path }]"
+        :class="['nav-link', { active: props.currentView === route.path }]"
       >
         {{ route.name }}
       </a>

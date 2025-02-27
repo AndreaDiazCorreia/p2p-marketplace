@@ -1,5 +1,50 @@
-# Vue 3 + TypeScript + Vite
+# P2P Bitcoin Marketplace
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+A decentralized platform for buying and selling Bitcoin directly between users.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Features
+
+- **Order Matching**: View and filter available orders based on your criteria.
+- **User-Friendly Interface**: Easy navigation and order management.
+- **Real-Time Updates**: Get the latest order information instantly.
+
+## Components
+
+- **TradeFlow**: Displays available orders and allows users to filter them based on their preferences.
+- **MyOrders**: Shows the user's active orders.
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/p2p-bitcoin-marketplace.git
+   ```
+
+2. Navigate to the project directory:
+   ```bash
+   cd p2p-bitcoin-marketplace
+   ```
+
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+4. Run the application:
+   ```bash
+   npm run serve
+   ```
+
+## Usage
+
+- Navigate to the **Order Book** to view available orders.
+- Use the **My Orders** section to manage your active orders.
+- Click on an order to see more details and select it.
+
+## Contributing
+
+Feel free to submit issues or pull requests to improve the project.
+
+## License
+
+This project is licensed under the MIT License.
