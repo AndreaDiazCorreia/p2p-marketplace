@@ -10,7 +10,6 @@ A decentralized platform for buying and selling Bitcoin directly between users.
 
 ## Components
 
-- **Navbar**: Navigation bar for accessing different sections of the application.
 - **TradeFlow**: Displays available orders and allows users to filter them based on their preferences.
 - **MyOrders**: Shows the user's active orders.
 
