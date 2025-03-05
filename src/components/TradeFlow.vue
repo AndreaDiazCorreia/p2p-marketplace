@@ -59,13 +59,13 @@ const matchingOrders = computed(() => {
     });
 });
 
-function formatPrice(price: string): string {
+/* function formatPrice(price: string): string {
   const num = parseFloat(price);
   return isNaN(num) ? '0.00' : num.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
-}
+} */
 
 function formatAmount(amount: string): string {
   const num = parseFloat(amount);
