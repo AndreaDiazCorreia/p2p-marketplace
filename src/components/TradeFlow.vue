@@ -262,7 +262,6 @@ function selectOrder(order: Order) {
                   </div>
                 </div>
                 <div class="price-info">
-                  <div class="price-amount">{{ formatPrice(order.price) }} {{ order.fiat }}</div>
                   <div class="premium" :class="{ positive: parseFloat(order.premium) > 0, negative: parseFloat(order.premium) < 0 }">
                     {{ calculatePremium(order.premium) }}
                   </div>
